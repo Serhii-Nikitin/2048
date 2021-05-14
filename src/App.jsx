@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import './App.scss';
 import { GameBoard } from './GameBoard';
 
-const rows = 4;
-const columns = 4;
-const initialArray = Array(rows * columns).fill(0);
+const rowsCount = 4;
+const columnsCount = 4;
+const initialArray = Array(rowsCount * columnsCount).fill(0);
 
 export const App = () => {
   const [score, setScore] = useState(0);
@@ -13,321 +13,251 @@ export const App = () => {
   const [isWin, setIsWin] = useState(false);
   const [isLose, setIsLose] = useState(false);
 
-  //функция для генерации рандомного индекса
   const randomIndex = () => Math.floor(Math.random() * cells.length);
 
-  // функция для начала игры
   const getStart = () => {
-    const firstRandom = randomIndex();
-    const secondRandom = randomIndex();
+    const firstRandomIndex = randomIndex();
+    const secondRandomIndex = randomIndex();
 
-    if (firstRandom !== secondRandom) {
-      setCells(current => current
+    if (firstRandomIndex !== secondRandomIndex) {
+      setCells(current => (current
         .map((cell, index) => (
-          index === firstRandom || index === secondRandom
-            ? getNumber()
+          index === firstRandomIndex || index === secondRandomIndex
+            ? getRandomNumber()
             : cell
         ))
-      )
+      ));
       setIsGameStarted(true);
-      setIsWin(false)
-      setIsLose(false)
-      setScore(0)
+      setIsWin(false);
+      setIsLose(false);
+      setScore(0);
     } else {
       getStart();
     }
-  }
+  };
 
-  // функция для кнопки старт
-  const handleButton = () => {
-    if (isGameStarted) {
-      setCells(initialArray);
-    } 
-    
+  const handleStart = () => {
+    setCells(initialArray);
     getStart();
-  }
+  };
 
-  // функция для генерации числа 2 или 4
-  function getNumber() {
+  function getRandomNumber() {
     const possibleNumbers = [2, 4].sort(() => Math.random() - 0.5);
 
     return possibleNumbers[0];
   }
 
-  //функция для добавления нового числа
-  const addNewNumber = (array) => {
-    const random = randomIndex();
+  const addNewNumber = (cellsList) => {
+    const position = randomIndex();
 
-    if (array[random] === 0) {
-      setCells(array.map((item, index) => index === random
-        ? getNumber()
+    if (cellsList[position] === 0) {
+      const newArray = cellsList.map((item, index) => (index === position
+        ? getRandomNumber()
         : item
-      ))
+      ));
+
+      setCells(newArray);
     } else {
-      addNewNumber(array);
+      addNewNumber(cellsList);
     }
-  }
+  };
 
+  const rowsFilter = (row) => {
+    let currentIndex;
 
-  // функции для движения ячеек влево
-  const moveLeft = () => {
+    return row
+      .map((cell, index, array) => {
+        let newCell = cell;
+
+        if (index === currentIndex) {
+          newCell = 0;
+          currentIndex = null;
+        } else if (cell === array[index + 1]) {
+          newCell *= 2;
+          setScore(current => current + newCell);
+          currentIndex = (index + 1);
+        }
+
+        return newCell;
+      })
+      .filter(cell => cell);
+  };
+
+  const columnsFilter = (column) => {
+    let currentIndex;
+
+    return column
+      .map((cell, index, array) => {
+        let newCell = cell;
+
+        if (cell === 2048) {
+          setIsWin(true);
+        } else if (index === currentIndex) {
+          newCell = 0;
+          currentIndex = null;
+        } else if (cell === array[index + 1]) {
+          newCell *= 2;
+          setScore(current => current + newCell);
+          currentIndex = (index + 1);
+        }
+
+        return newCell;
+      })
+      .filter(cell => cell);
+  };
+
+  const moveCells = (keyName) => {
     let newBoard = [];
-    for (let i = 0; i < cells.length - 1; i++) {
-      if (i % 4 === 0) {
-        const row = [cells[i], cells[i + 1], cells[i + 2], cells[i + 3]]
-        let filtredRow = row.filter(cell => cell);
-        let currentIndex;
-        filtredRow = filtredRow
-          .map((cell, index, array) => {
-            if (index === currentIndex) {
-              cell = 0;
-              currentIndex = null;
-            } else if (cell === array[index + 1]) {
-              cell *= 2;
-              setScore(current => current + cell);
-              currentIndex = (index + 1);
-            }
 
-            return cell;
-          })
-          .filter(cell => cell)
+    switch (keyName) {
+      case 'ArrowLeft':
+        for (let i = 0; i < cells.length - 1; i += 1) {
+          if (i % 4 === 0) {
+            const row = [cells[i], cells[i + 1], cells[i + 2], cells[i + 3]];
+            let filteredRow = row.filter(cell => cell);
 
-        const emptyCells = Array(columns - filtredRow.length).fill(0);
-        const newRow = filtredRow.concat(emptyCells);
+            filteredRow = rowsFilter(filteredRow);
 
-        newBoard = newBoard.concat(newRow)
-      }
-    }
+            const emptyCells = Array(columnsCount - filteredRow.length).fill(0);
+            const newRow = filteredRow.concat(emptyCells);
 
-    const isBoardChange = newBoard.every((item, index) => item === cells[index]);
-    const isDuplicates = newBoard.some((cell, index, array) => {
-      if (cell === array[index + columns] && cell !== 0) {
-        return true;
-      }
-    })
-
-    if (newBoard.includes(2048)) {
-      setIsWin(true);
-      setCells(newBoard);
-    } else if (!newBoard.includes(0) && !isDuplicates) {
-      setIsLose(true);
-      setCells(newBoard);
-    } else if (!isBoardChange) {
-      addNewNumber(newBoard)
-    }
-  }
-
-
-  // функции для движения ячеек вправо
-  const moveRight = () => {
-    let newBoard = [];
-    for (let i = 0; i < cells.length - 1; i++) {
-      if (i % 4 === 0) {
-        const row = [cells[i], cells[i + 1], cells[i + 2], cells[i + 3]]
-        let filtredRow = row.filter(cell => cell);
-        let currentIndex;
-        filtredRow = filtredRow
-          .reverse()
-          .map((cell, index, array) => {
-            if (index === currentIndex) {
-              cell *= 2;
-              setScore(current => current + cell);
-              currentIndex = null;
-            } else if (cell === array[index + 1]) {
-              cell = 0;
-              currentIndex = (index + 1);
-            }
-
-            return cell;
-          })
-          .filter(cell => cell)
-          .reverse()
-
-        const emptyCells = Array(columns - filtredRow.length).fill(0);
-        const newRow = emptyCells.concat(filtredRow);
-
-        newBoard = newBoard.concat(newRow)
-      }
-    }
-
-    const isBoardChange = newBoard.every((item, index) => item === cells[index]);
-    const isDuplicates = newBoard.some((cell, index, array) => {
-      if (cell === array[index + columns] && cell !== 0) {
-        return true;
-      }
-    })
-
-
-    if (newBoard.includes(2048)) {
-      setIsWin(true);
-      setCells(newBoard);
-    } else if (!newBoard.includes(0) && !isDuplicates) {
-      setIsLose(true);
-      setCells(newBoard);
-    } else if (!isBoardChange) {
-      addNewNumber(newBoard)
-    }
-  }
-
-  // функции для движения ячеек вверх
-  const moveTop = () => {
-    let newBoard = [];
-    for (let i = 0; i < rows; i++) {
-      const column = [
-        cells[i],
-        cells[i + rows],
-        cells[i + rows * 2],
-        cells[i + rows * 3]
-      ]
-
-      console.log(column);
-
-      let filtredColumn = column.filter(cell => cell);
-
-      let currentIndex;
-      filtredColumn = filtredColumn
-        .map((cell, index, array) => {
-          if (cell === 2048) {
-            setIsWin(true)
-          } else if (index === currentIndex) {
-            cell = 0;
-            currentIndex = null;
-          } else if (cell === array[index + 1]) {
-            cell *= 2;
-            setScore(current => current + cell);
-            currentIndex = (index + 1);
+            newBoard = newBoard.concat(newRow);
           }
+        }
 
-          return cell;
-        })
-        .filter(cell => cell)
+        break;
 
-      const emptyCells = Array(rows - filtredColumn.length).fill(0);
-      const newColumn = filtredColumn.concat(emptyCells);
+      case 'ArrowRight':
+        for (let i = 0; i < cells.length - 1; i += 1) {
+          if (i % 4 === 0) {
+            const row = [cells[i], cells[i + 1], cells[i + 2], cells[i + 3]];
+            let filteredRow = row.filter(cell => cell).reverse();
 
-      newBoard[i] = newColumn[0];
-      newBoard[i + rows] = newColumn[1];
-      newBoard[i + rows * 2] = newColumn[2];
-      newBoard[i + rows * 3] = newColumn[3];
-    }
-    const isBoardChange = newBoard.every((item, index) => item === cells[index]);
-    const isDuplicates = newBoard.some((cell, index, array) => {
-      if (cell === array[index + rows] && cell !== 0) {
-        return true;
-      }
-    })
+            filteredRow = rowsFilter(filteredRow).reverse();
 
-    if (newBoard.includes(2048)) {
-      setIsWin(true);
-      setCells(newBoard);
-    } else if (!newBoard.includes(0) && !isDuplicates) {
-      setIsLose(true);
-      setCells(newBoard);
-    } else if (!isBoardChange) {
-      addNewNumber(newBoard)
-    }
-  }
+            const emptyCells = Array(columnsCount - filteredRow.length).fill(0);
+            const newRow = emptyCells.concat(filteredRow);
 
-  // функции для движения ячеек вниз
-  const moveBottom = () => {
-    let newBoard = [];
-    for (let i = 0; i < rows; i++) {
-      const column = [
-        cells[i],
-        cells[i + rows],
-        cells[i + rows * 2],
-        cells[i + rows * 3]
-      ]
-
-      console.log(column);
-
-      let filtredColumn = column.filter(cell => cell);
-
-      let currentIndex;
-      filtredColumn = filtredColumn
-        .reverse()
-        .map((cell, index, array) => {
-          if (cell === 2048) {
-            setIsWin(true)
-          } else if (index === currentIndex) {
-            cell *= 2;
-            setScore(current => current + cell);
-            currentIndex = null;
-          } else if (cell === array[index + 1]) {
-            cell = 0;
-            currentIndex = (index + 1);
+            newBoard = newBoard.concat(newRow);
           }
+        }
 
-          return cell;
-        })
-        .filter(cell => cell)
-        .reverse()
+        break;
 
-      console.log(filtredColumn);
-      const emptyCells = Array(rows - filtredColumn.length).fill(0);
-      const newColumn = emptyCells.concat(filtredColumn);
+      case 'ArrowUp':
+        for (let i = 0; i < rowsCount; i += 1) {
+          const column = [
+            cells[i],
+            cells[i + rowsCount],
+            cells[i + rowsCount * 2],
+            cells[i + rowsCount * 3],
+          ];
 
-      newBoard[i] = newColumn[0];
-      newBoard[i + rows] = newColumn[1];
-      newBoard[i + rows * 2] = newColumn[2];
-      newBoard[i + rows * 3] = newColumn[3];
+          let filteredColumn = column.filter(cell => cell);
+
+          filteredColumn = columnsFilter(filteredColumn);
+
+          const emptyCells = Array(rowsCount - filteredColumn.length).fill(0);
+          const newColumn = filteredColumn.concat(emptyCells);
+          const [firstCell, secondCell, thirdCell, fourCell] = newColumn;
+
+          newBoard[i] = firstCell;
+          newBoard[i + rowsCount] = secondCell;
+          newBoard[i + rowsCount * 2] = thirdCell;
+          newBoard[i + rowsCount * 3] = fourCell;
+        }
+
+        break;
+
+      case 'ArrowDown':
+        for (let i = 0; i < rowsCount; i += 1) {
+          const column = [
+            cells[i],
+            cells[i + rowsCount],
+            cells[i + rowsCount * 2],
+            cells[i + rowsCount * 3],
+          ];
+
+          let filteredColumn = column.filter(cell => cell).reverse();
+
+          filteredColumn = columnsFilter(filteredColumn)
+            .reverse();
+
+          const emptyCells = Array(rowsCount - filteredColumn.length).fill(0);
+          const newColumn = emptyCells.concat(filteredColumn);
+
+          const [firstCell, secondCell, thirdCell, fourCell] = newColumn;
+
+          newBoard[i] = firstCell;
+          newBoard[i + rowsCount] = secondCell;
+          newBoard[i + rowsCount * 2] = thirdCell;
+          newBoard[i + rowsCount * 3] = fourCell;
+        }
+
+        break;
+
+      default:
+        break;
     }
 
-    const isBoardChange = newBoard.every((item, index) => item === cells[index]);
+    const isBoardChange = newBoard
+      .every((cell, index) => cell === cells[index]);
+
     const isDuplicates = newBoard.some((cell, index, array) => {
-      if (cell === array[index + rows] && cell !== 0) {
+      if (cell === 0) {
         return true;
       }
-    })
+
+      if (cell === array[index + rowsCount]) {
+        return true;
+      }
+
+      if ((index % columnsCount) !== 3
+        && cell === array[index + 1]) {
+        return true;
+      }
+
+      return false;
+    });
 
     if (newBoard.includes(2048)) {
       setIsWin(true);
       setCells(newBoard);
-    } else if (!newBoard.includes(0) && !isDuplicates) {
+    } else if (!isDuplicates) {
       setIsLose(true);
       setCells(newBoard);
     } else if (!isBoardChange) {
-      addNewNumber(newBoard)
+      addNewNumber(newBoard);
     }
-  }
-
-  console.log('render');
+  };
 
   return (
     <div
       className="page-container"
+      role="presentation"
+      /* eslint-disable-next-line */
       tabIndex={1}
       onKeyUp={(e) => {
-        if (e.key === 'ArrowUp' && !isWin && !isLose) {
-          moveTop();
+        if (!isWin && !isLose) {
+          moveCells(e.key);
         }
-
-        if (e.key === 'ArrowLeft' && !isWin && !isLose) {
-          moveLeft();
-        }
-
-        if (e.key === 'ArrowRight' && !isWin && !isLose) {
-          moveRight();
-        }
-
-        if (e.key === 'ArrowDown' && !isWin && !isLose) {
-          moveBottom();
-        }
-        console.log(e);
       }}
     >
       <div className="container">
         <div className="game-header">
-          <h1>2048</h1>
+          <h1 className="title">2048</h1>
           <div className="controls">
             <p className="info">
               {`Score: `}
-              <span className="game-score">{score}</span>
+              <span>{score}</span>
             </p>
             <button
               type="button"
-              className="button start"
-              onClick={() => handleButton()}
+              className={isGameStarted
+                ? 'button restart'
+                : 'button start'
+              }
+              onClick={() => handleStart()}
             >
               {isGameStarted
                 ? 'Restart'
@@ -337,13 +267,13 @@ export const App = () => {
           </div>
         </div>
 
-        <div className="game-field" onKeyUp={() => console.log('hi')}>
-          <GameBoard cells={cells}/>
+        <div className="game-field">
+          <GameBoard cells={cells} />
         </div>
 
         <div className="message-container">
           {isLose && (
-            <p className="message message-lose">
+            <p className="message">
               You lose! Restart the game?
             </p>
           )}
@@ -353,8 +283,8 @@ export const App = () => {
             </p>
           )}
           {!isGameStarted && (
-            <p className="message message-start">
-              Press "Start" to begin game. Good luck!
+            <p className="message">
+              Press &quot;Start&quot; to begin game. Good luck!
             </p>
           )}
         </div>

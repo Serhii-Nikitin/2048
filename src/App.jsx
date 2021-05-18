@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import './App.scss';
 import { GameBoard } from './GameBoard';
 
 const rowsCount = 4;
 const columnsCount = 4;
 const initialArray = Array(rowsCount * columnsCount).fill(0);
+const possibleNumbers = [2, 4];
 
 export const App = () => {
   const [score, setScore] = useState(0);
@@ -13,9 +14,11 @@ export const App = () => {
   const [isWin, setIsWin] = useState(false);
   const [isLose, setIsLose] = useState(false);
 
-  const randomIndex = () => Math.floor(Math.random() * cells.length);
+  const randomIndex = useCallback(() => (
+    Math.floor(Math.random() * cells.length)
+  ), [cells]);
 
-  const getStart = () => {
+  const getStart = useCallback(() => {
     const firstRandomIndex = randomIndex();
     const secondRandomIndex = randomIndex();
 
@@ -34,7 +37,7 @@ export const App = () => {
     } else {
       getStart();
     }
-  };
+  }, [randomIndex, getRandomNumber]);
 
   const handleStart = () => {
     setCells(initialArray);
@@ -42,9 +45,9 @@ export const App = () => {
   };
 
   function getRandomNumber() {
-    const possibleNumbers = [2, 4].sort(() => Math.random() - 0.5);
+    const sortedNumbers = possibleNumbers.sort(() => Math.random() - 0.5);
 
-    return possibleNumbers[0];
+    return sortedNumbers[0];
   }
 
   const addNewNumber = (cellsList) => {
@@ -119,9 +122,12 @@ export const App = () => {
             filteredRow = rowsFilter(filteredRow);
 
             const emptyCells = Array(columnsCount - filteredRow.length).fill(0);
-            const newRow = filteredRow.concat(emptyCells);
 
-            newBoard = newBoard.concat(newRow);
+            newBoard = [
+              ...newBoard,
+              ...filteredRow,
+              ...emptyCells,
+            ];
           }
         }
 
@@ -136,9 +142,12 @@ export const App = () => {
             filteredRow = rowsFilter(filteredRow).reverse();
 
             const emptyCells = Array(columnsCount - filteredRow.length).fill(0);
-            const newRow = emptyCells.concat(filteredRow);
 
-            newBoard = newBoard.concat(newRow);
+            newBoard = [
+              ...newBoard,
+              ...emptyCells,
+              ...filteredRow,
+            ];
           }
         }
 
@@ -158,7 +167,10 @@ export const App = () => {
           filteredColumn = columnsFilter(filteredColumn);
 
           const emptyCells = Array(rowsCount - filteredColumn.length).fill(0);
-          const newColumn = filteredColumn.concat(emptyCells);
+          const newColumn = [
+            ...filteredColumn,
+            ...emptyCells,
+          ];
           const [firstCell, secondCell, thirdCell, fourCell] = newColumn;
 
           newBoard[i] = firstCell;
@@ -184,7 +196,10 @@ export const App = () => {
             .reverse();
 
           const emptyCells = Array(rowsCount - filteredColumn.length).fill(0);
-          const newColumn = emptyCells.concat(filteredColumn);
+          const newColumn = [
+            ...emptyCells,
+            ...filteredColumn,
+          ];
 
           const [firstCell, secondCell, thirdCell, fourCell] = newColumn;
 
@@ -197,7 +212,7 @@ export const App = () => {
         break;
 
       default:
-        break;
+        return;
     }
 
     const isBoardChange = newBoard
@@ -257,7 +272,7 @@ export const App = () => {
                 ? 'button restart'
                 : 'button start'
               }
-              onClick={() => handleStart()}
+              onClick={handleStart}
             >
               {isGameStarted
                 ? 'Restart'
